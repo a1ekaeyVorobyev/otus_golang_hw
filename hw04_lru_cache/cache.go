@@ -9,12 +9,16 @@ import (
 type Key string
 
 var _ Cache = (*lruCache)(nil)
+var ErrCapacity = errors.New("capacity value must be greater than 0")
+var ErrQueueEmpty = errors.New("queue is empty")
 
 type Cache interface {
 	Set(key Key, value interface{}) bool
 	Get(key Key) (interface{}, bool)
 	Clear() error
 	printCash() []interface{}
+	getFrontElement() interface{}
+	getBackElement() interface{}
 }
 
 type lruCache struct {
@@ -60,7 +64,7 @@ func (l *lruCache) Set(key Key, value interface{}) bool {
 func (l *lruCache) Get(key Key) (interface{}, bool) {
 	l.mux.Lock()
 	defer l.mux.Unlock()
-	if _, ok := l.items[key]; ok { // элемент присутствует в словаре
+	if _, ok := l.items[key]; ok {
 		if err := l.queue.MoveToFront(l.items[key]); err == nil { //переместить элемент в начало очереди
 			l.items[key] = l.queue.Front()
 			return l.items[key].data.(*Item).value, ok
@@ -72,7 +76,7 @@ func (l *lruCache) Get(key Key) (interface{}, bool) {
 func (l *lruCache) Clear() error {
 	lastItem := l.queue.Back() //последний элемент из очереди
 	if lastItem == nil {
-		return errors.New("queue is empty")
+		return ErrQueueEmpty
 	}
 	if item, ok := lastItem.data.(*Item); ok {
 		delete(l.items, item.key)                        // удалить его значение из словаря
@@ -83,9 +87,9 @@ func (l *lruCache) Clear() error {
 	return nil
 }
 
-func NewCache(capacity int) Cache {
+func NewCache(capacity int) (Cache, error) {
 	if capacity < 0 {
-		panic("capacity value must be >= 0")
+		return nil, ErrCapacity
 	}
 	cash := &lruCache{
 		capacity: capacity,
@@ -93,17 +97,29 @@ func NewCache(capacity int) Cache {
 		items:    map[Key]*listItem{},
 		mux:      &sync.Mutex{},
 	}
-	return cash
+	return cash, nil
 }
 
 func (l *lruCache) printCash() []interface{} {
 	l.mux.Lock()
 	defer l.mux.Unlock()
 	v := make([]interface{}, l.queue.Len())
-	elem := l.queue.Back()
+	elem := l.queue.Front()
 	for i := 0; i < l.queue.Len(); i++ {
 		v[i] = elem.data.(*Item).key
 		elem = elem.Next()
 	}
 	return v
+}
+
+func (l *lruCache) getFrontElement() interface{} {
+	l.mux.Lock()
+	defer l.mux.Unlock()
+	return l.queue.Front().data.(*Item)
+}
+
+func (l *lruCache) getBackElement() interface{} {
+	l.mux.Lock()
+	defer l.mux.Unlock()
+	return l.queue.Back().data.(*Item)
 }
