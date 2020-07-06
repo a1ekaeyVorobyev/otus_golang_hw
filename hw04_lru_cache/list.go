@@ -1,7 +1,11 @@
 package hw04_lru_cache //nolint:golint,stylecheck
-import "fmt"
+import (
+	"github.com/pkg/errors"
+)
 
 var _ List = (*list)(nil)
+var ErrItemRemove = errors.New("This element has already been deleted")
+var ErrItemList = errors.New("This item does not belong to this list")
 
 type List interface {
 	Len() int
@@ -11,6 +15,7 @@ type List interface {
 	PushBack(v interface{})
 	Remove(i *listItem) error
 	MoveToFront(i *listItem) error
+	GetListItem(v interface{}) []*listItem
 }
 
 type list struct {
@@ -89,10 +94,10 @@ func (l *list) Back() *listItem {
 
 func (l *list) Remove(remoteItem *listItem) error {
 	if remoteItem.list == nil {
-		return fmt.Errorf("данный элемент  уже удален")
+		return ErrItemRemove
 	}
 	if l != remoteItem.list {
-		return fmt.Errorf("данный элемент не принадлежит этому списку")
+		return ErrItemList
 	}
 	remoteItem.list = nil
 	prev := remoteItem.prev
@@ -137,10 +142,4 @@ func NewList() List {
 		head: nil,
 		size: 0,
 	}
-}
-
-func ListNew() *list {
-	l := new(list)
-	l.size = 0
-	return l
 }

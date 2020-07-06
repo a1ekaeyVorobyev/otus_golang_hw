@@ -1,12 +1,12 @@
 package hw04_lru_cache //nolint:golint,stylecheck
 
 import (
-	"math/rand"
-	"strconv"
-	"sync"
-	"testing"
+"math/rand"
+"strconv"
+"sync"
+"testing"
 
-	"github.com/stretchr/testify/require"
+"github.com/stretchr/testify/require"
 )
 
 func TestCache(t *testing.T) {
@@ -76,4 +76,10 @@ func TestCacheMultithreading(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestCreateLruCache(t *testing.T){
+	l,err := NewCache(-1)
+	if
+
 }
